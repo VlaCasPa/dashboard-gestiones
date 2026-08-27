@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCM2L | Dashboard de Gestiones en Tiempo Real</title>
-    <!-- Librería PapaParse para lectura robusta de CSV -->
+    <!-- Librería PapaParse para procesamiento eficiente de datos en tiempo real -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --primary: #003366;
             --primary-dark: #002244;
             --accent: #007acc;
-            --bg: #f3f4f6;
+            --bg: #f4f6f9;
             --card-bg: #ffffff;
             --text-main: #1f2937;
             --text-muted: #4b5563;
@@ -36,7 +36,7 @@
         body {
             background-color: var(--bg);
             color: var(--text-main);
-            padding-bottom: 30px;
+            padding-bottom: 40px;
         }
 
         .app-header {
@@ -70,7 +70,7 @@
 
         .header-badge {
             background: rgba(255,255,255,0.18);
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
@@ -338,7 +338,7 @@
         <div class="header-container">
             <div class="header-title">
                 <h1>CCM2L | CONTROL DE GESTIONES</h1>
-                <p>Permisos de Obra & e Interferencias</p>
+                <p>Permisos de Obra & Interferencias</p>
             </div>
             <div class="header-badge">
                 <span class="status-dot"></span> En Vivo
@@ -372,17 +372,17 @@
             </div>
         </div>
 
-        <!-- Filtros -->
+        <!-- Filtros Dinámicos -->
         <div class="filter-section" id="filter-container">
             <button class="filter-btn active" onclick="filtrar('all', this)">Todos</button>
         </div>
 
         <!-- Contenedor dinámico de tarjetas -->
         <div id="tasks-container">
-            <div class="loading-box">⏳ Cargando gestiones desde Google Sheets...</div>
+            <div class="loading-box">⏳ Conectando y cargando gestiones en tiempo real...</div>
         </div>
 
-        <!-- Botón WhatsApp -->
+        <!-- Botón para copiar reporte a WhatsApp -->
         <button class="whatsapp-btn-float" onclick="copiarWhatsApp()">
             📋 Copiar Reporte Ejecutivo para WhatsApp
         </button>
@@ -392,17 +392,13 @@
     <div id="toast" class="copy-toast">✅ Reporte copiado. ¡Listo para pegar en WhatsApp!</div>
 
     <script>
-        // ==========================================
-        // CONFIGURACIÓN DE TU ENLACE GOOGLE SHEETS
-        // Reemplaza la URL entre comillas con tu enlace CSV publicado:
-        // ==========================================
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pubhtml';
+        // Enlace adaptado a formato de datos CSV en tiempo real
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pub?output=csv';
 
         let listaGestiones = [];
 
         async function cargarDatos() {
             try {
-                // PapaParse descarga y parsea el CSV respetando comillas y saltos de línea internos
                 Papa.parse(GOOGLE_SHEET_CSV_URL, {
                     download: true,
                     header: true,
@@ -413,7 +409,7 @@
                     },
                     error: function(err) {
                         document.getElementById('tasks-container').innerHTML = 
-                            `<div class="loading-box" style="color:red;">❌ Error al conectar con Google Sheets. Verifica la URL de publicación.</div>`;
+                            `<div class="loading-box" style="color:#c5221f;">❌ Error al sincronizar con Google Sheets. Verifique la conexión a internet.</div>`;
                     }
                 });
             } catch (error) {
@@ -426,33 +422,37 @@
             const filterContainer = document.getElementById('filter-container');
             container.innerHTML = '';
 
-            let total = datos.length;
+            let total = 0;
             let concluidas = 0;
             let proceso = 0;
             let entidadesSet = new Set();
             let ubicacionesSet = new Set();
 
             datos.forEach((item, index) => {
-                // Mapeo flexible de columnas (según los nombres de tu cabecera)
-                const ubicacion = item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || 'General';
-                const tema = item['TEMA'] || item['TEMA / INTERVENCIÓN'] || 'Sin Asunto';
-                const objetivo = item['OBJETIVO'] || '';
-                const entidad = item['ENTIDAD'] || 'No especificada';
-                const plazo = item['PLAZO'] || item['FECHA INICIO'] || '-';
-                const estado = item['ESTADO'] || item['ESTADO OPERATIVO'] || 'En proceso';
-                const acciones = item['ACCIONES'] || item['ACCIONES EJECUTADAS'] || '';
-                const alertas = item['REFERENCIA'] || item['ALERTAS'] || '';
+                // Mapeo flexible de columnas para compatibilidad de encabezados
+                const ubicacion = (item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || item['ESTADO E25'] || 'General').trim();
+                const tema = (item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '').trim();
+                const objetivo = (item['OBJETIVO'] || '').trim();
+                const entidad = (item['ENTIDAD'] || 'No especificada').trim();
+                const plazo = (item['PLAZO'] || item['FECHA INICIO'] || '-').trim();
+                const estado = (item['ESTADO'] || item['ESTADO OPERATIVO'] || 'En proceso').trim();
+                const acciones = (item['ACCIONES'] || item['ACCIONES EJECUTADAS'] || '').trim();
+                const alertas = (item['REFERENCIA'] || item['ALERTAS'] || '').trim();
 
-                entidadesSet.add(entidad.trim());
-                ubicacionesSet.add(ubicacion.trim());
+                // Validar que la fila contenga datos reales
+                if (!tema && !objetivo && !acciones) return;
 
-                // Clasificación de color de estado
+                total++;
+                if (entidad && entidad !== 'No especificada') entidadesSet.add(entidad);
+                if (ubicacion) ubicacionesSet.add(ubicacion);
+
+                // Clasificación de criticidad / estado
                 let estadoClass = 'status-info';
                 const estLower = estado.toLowerCase();
-                if (estLower.includes('concluid') || estLower.includes('mitigad') || estLower.includes('cerrad')) {
+                if (estLower.includes('concluid') || estLower.includes('mitigad') || estLower.includes('cerrad') || estLower.includes('atendido')) {
                     estadoClass = 'status-success';
                     concluidas++;
-                } else if (estLower.includes('inspecc') || estLower.includes('alerta') || estLower.includes('pago')) {
+                } else if (estLower.includes('inspecc') || estLower.includes('alerta') || estLower.includes('pago') || estLower.includes('pendiente')) {
                     estadoClass = 'status-warning';
                     proceso++;
                 } else {
@@ -460,7 +460,7 @@
                     proceso++;
                 }
 
-                // Generar tarjeta HTML
+                // Creación de la tarjeta interactiva
                 const card = document.createElement('div');
                 card.className = 'task-card';
                 card.setAttribute('data-loc', ubicacion);
@@ -471,31 +471,31 @@
                                 <span class="badge-loc">${ubicacion}</span>
                                 <span class="badge-entity">${entidad}</span>
                             </div>
-                            <div class="task-title">${tema}</div>
+                            <div class="task-title">${tema || 'Gestión Contractual'}</div>
                         </div>
                         <span class="status-pill ${estadoClass}">${estado}</span>
                     </div>
                     <div class="task-body">
                         ${objetivo ? `<div class="section-sub">Objetivo</div><p class="task-desc">${objetivo}</p>` : ''}
                         ${acciones ? `<div class="section-sub">Acciones & Avance</div><p class="task-desc">${acciones}</p>` : ''}
-                        ${alertas ? `<div class="alert-box"><strong>📌 Observaciones / Próximos pasos:</strong><br>${alertas}</div>` : ''}
+                        ${alertas && alertas !== '#VALUE!' ? `<div class="alert-box"><strong>📌 Observaciones / Próximos pasos:</strong><br>${alertas}</div>` : ''}
                     </div>
                     <div class="task-footer">
-                        <span>Plazo / Fecha: <strong>${plazo}</strong></span>
-                        <span>Item #${index + 1}</span>
+                        <span>Plazo / Compromiso: <strong>${plazo}</strong></span>
+                        <span>Gestión #${total}</span>
                     </div>
                 `;
                 container.appendChild(card);
             });
 
-            // Actualizar KPIs
+            // Actualizar contadores KPI
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-proceso').innerText = proceso;
             document.getElementById('kpi-concluidas').innerText = concluidas;
             document.getElementById('kpi-entidades').innerText = entidadesSet.size;
 
-            // Generar botones de filtro dinámicos por Ubicación
-            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar(\'all\', this)">Todos</button>';
+            // Construir botones de filtro
+            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar('all', this)">Todos (' + total + ')</button>';
             ubicacionesSet.forEach(loc => {
                 const btn = document.createElement('button');
                 btn.className = 'filter-btn';
@@ -522,21 +522,35 @@
         function copiarWhatsApp() {
             if (listaGestiones.length === 0) return;
 
-            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO EN TIEMPO REAL*\n`;
-            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual\n\n`;
+            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO DE GESTIONES*
+`;
+            texto += `📅 *Actualizado:* En tiempo real
+`;
+            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual
 
-            listaGestiones.forEach((item, i) => {
-                const ubi = item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || 'General';
-                const tema = item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '';
-                const ent = item['ENTIDAD'] || '';
-                const est = item['ESTADO'] || item['ESTADO OPERATIVO'] || '';
-                const plazo = item['PLAZO'] || '';
+`;
 
-                texto += `*${i + 1}. ${ubi} - ${tema}*\n`;
-                if (ent) texto += `• Entidad: ${ent}\n`;
-                if (est) texto += `• Estado: ${est}\n`;
-                if (plazo) texto += `• Plazo/Compromiso: ${plazo}\n`;
-                texto += `\n`;
+            let contador = 1;
+            listaGestiones.forEach((item) => {
+                const ubi = (item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || item['ESTADO E25'] || 'General').trim();
+                const tema = (item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '').trim();
+                const ent = (item['ENTIDAD'] || '').trim();
+                const est = (item['ESTADO'] || item['ESTADO OPERATIVO'] || '').trim();
+                const plazo = (item['PLAZO'] || item['FECHA INICIO'] || '').trim();
+
+                if (!tema && !ubi) return;
+
+                texto += `*${contador}. ${ubi} - ${tema}*
+`;
+                if (ent) texto += `• Entidad: ${ent}
+`;
+                if (est) texto += `• Estado: ${est}
+`;
+                if (plazo && plazo !== '-') texto += `• Plazo: ${plazo}
+`;
+                texto += `
+`;
+                contador++;
             });
 
             navigator.clipboard.writeText(texto.trim()).then(() => {
@@ -546,7 +560,7 @@
             });
         }
 
-        // Cargar datos al iniciar
+        // Ejecución automática al abrir la web
         window.onload = cargarDatos;
     </script>
 </body>
