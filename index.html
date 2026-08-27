@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCM2L | Dashboard de Gestiones y Permisos</title>
+    <title>CCM2L | Dashboard de Gestiones en Tiempo Real</title>
+    <!-- Librería PapaParse para lectura robusta de CSV -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --primary: #003366;
@@ -37,7 +39,6 @@
             padding-bottom: 30px;
         }
 
-        /* App Bar Header */
         .app-header {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
             color: #ffffff;
@@ -74,6 +75,23 @@
             font-size: 0.75rem;
             font-weight: 600;
             border: 1px solid rgba(255,255,255,0.25);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #25D366;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
         }
 
         .main-container {
@@ -82,7 +100,6 @@
             padding: 0 16px;
         }
 
-        /* KPI Grid */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -130,12 +147,13 @@
             color: var(--text-muted);
         }
 
-        /* Quick Action / Filter Bar */
         .filter-section {
             margin-bottom: 16px;
             overflow-x: auto;
             white-space: nowrap;
             padding-bottom: 6px;
+            display: flex;
+            gap: 8px;
         }
 
         .filter-btn {
@@ -147,7 +165,6 @@
             font-weight: 600;
             color: var(--text-muted);
             cursor: pointer;
-            margin-right: 6px;
             transition: all 0.2s ease;
         }
 
@@ -157,7 +174,6 @@
             border-color: var(--primary);
         }
 
-        /* Management Card Item */
         .task-card {
             background: var(--card-bg);
             border-radius: 14px;
@@ -165,7 +181,6 @@
             margin-bottom: 16px;
             border: 1px solid var(--border);
             overflow: hidden;
-            transition: transform 0.15s ease;
         }
 
         .task-header {
@@ -182,6 +197,7 @@
             align-items: center;
             gap: 8px;
             margin-bottom: 4px;
+            flex-wrap: wrap;
         }
 
         .badge-loc {
@@ -234,37 +250,13 @@
             text-transform: uppercase;
             margin-top: 10px;
             margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
 
         .task-desc {
             font-size: 0.85rem;
             color: #4b5563;
             line-height: 1.45;
-        }
-
-        .action-list {
-            list-style: none;
-            margin-top: 6px;
-        }
-
-        .action-list li {
-            font-size: 0.82rem;
-            line-height: 1.45;
-            color: #374151;
-            padding: 5px 0;
-            border-bottom: 1px dashed #f0f0f0;
-            display: flex;
-            align-items: flex-start;
-        }
-
-        .action-list li::before {
-            content: "✓";
-            color: #057a55;
-            font-weight: bold;
-            margin-right: 8px;
+            white-space: pre-line;
         }
 
         .alert-box {
@@ -276,12 +268,7 @@
             font-size: 0.8rem;
             color: #92400e;
             line-height: 1.4;
-        }
-
-        .alert-box.danger {
-            background: #fdf2f2;
-            border-color: #fbd5d5;
-            color: #9b1c1c;
+            white-space: pre-line;
         }
 
         .task-footer {
@@ -295,7 +282,6 @@
             border-top: 1px solid var(--border);
         }
 
-        /* WhatsApp Share Drawer / Button */
         .whatsapp-btn-float {
             background: #25D366;
             color: #ffffff;
@@ -337,6 +323,13 @@
 
         @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        .loading-box {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -345,182 +338,52 @@
         <div class="header-container">
             <div class="header-title">
                 <h1>CCM2L | CONTROL DE GESTIONES</h1>
-                <p>Permisos de Obra & e Interferencias de Servicios</p>
+                <p>Permisos de Obra & e Interferencias</p>
             </div>
-            <div class="header-badge">Agosto 2026</div>
+            <div class="header-badge">
+                <span class="status-dot"></span> En Vivo
+            </div>
         </div>
     </header>
 
     <div class="main-container">
 
-        <!-- KPI Grid -->
+        <!-- KPIs Dinámicos -->
         <div class="kpi-grid">
             <div class="kpi-card">
-                <div class="kpi-title">Gestiones Activas</div>
-                <div class="kpi-value">4</div>
-                <div class="kpi-desc">Total de intervenciones</div>
+                <div class="kpi-title">Gestiones Totales</div>
+                <div class="kpi-value" id="kpi-total">-</div>
+                <div class="kpi-desc">Total en seguimiento</div>
             </div>
             <div class="kpi-card kpi-warning">
-                <div class="kpi-title">Hito Inminente</div>
-                <div class="kpi-value">28/08</div>
-                <div class="kpi-desc">Inspección MPC E04 (10:00 AM)</div>
-            </div>
-            <div class="kpi-card kpi-danger">
-                <div class="kpi-title">Bloqueo Financiero</div>
-                <div class="kpi-value">100%</div>
-                <div class="kpi-desc">Pago previo PLUZ (E4-01)</div>
+                <div class="kpi-title">En Proceso / Trámite</div>
+                <div class="kpi-value" id="kpi-proceso">-</div>
+                <div class="kpi-desc">Atención en curso</div>
             </div>
             <div class="kpi-card kpi-success">
-                <div class="kpi-title">Riesgo Mitigado</div>
-                <div class="kpi-value">15 Postes</div>
-                <div class="kpi-desc">PV23 Retiro y Descargo Legal</div>
+                <div class="kpi-title">Mitigadas / Cierres</div>
+                <div class="kpi-value" id="kpi-concluidas">-</div>
+                <div class="kpi-desc">Riesgos eliminados</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Entidades</div>
+                <div class="kpi-value" id="kpi-entidades">-</div>
+                <div class="kpi-desc">Involucradas</div>
             </div>
         </div>
 
-        <!-- Filter Chips -->
-        <div class="filter-section">
-            <button class="filter-btn active" onclick="filterTasks('all', this)">Todos (4)</button>
-            <button class="filter-btn" onclick="filterTasks('E04', this)">Estación E04</button>
-            <button class="filter-btn" onclick="filterTasks('E4-01', this)">Estación E4-01</button>
-            <button class="filter-btn" onclick="filterTasks('E25', this)">PV23 / E25</button>
+        <!-- Filtros -->
+        <div class="filter-section" id="filter-container">
+            <button class="filter-btn active" onclick="filtrar('all', this)">Todos</button>
         </div>
 
-        <!-- Task Cards Container -->
+        <!-- Contenedor dinámico de tarjetas -->
         <div id="tasks-container">
-
-            <!-- Card 1: E04 Inspección -->
-            <div class="task-card" data-category="E04">
-                <div class="task-header">
-                    <div>
-                        <div class="task-meta">
-                            <span class="badge-loc">ESTACIÓN E04</span>
-                            <span class="badge-entity">MPC - GTU CALLAO</span>
-                        </div>
-                        <div class="task-title">Reposición de Pavimento & Entrega de Vía Pública</div>
-                    </div>
-                    <span class="status-pill status-warning">Inspección 28/08</span>
-                </div>
-                <div class="task-body">
-                    <div class="section-sub">Objetivo Contractual</div>
-                    <p class="task-desc">Constatación conjunta con la Municipalidad Provincial del Callao (GTU) tras el desmontaje de la tuneladora para reapertura vial y entrega del área.</p>
-
-                    <div class="section-sub">Acciones & Avance</div>
-                    <ul class="action-list">
-                        <li>Reunión de coordinación técnica sostenida con la GTU del Callao.</li>
-                        <li>Acuerdo pactado para inspección in situ el <strong>Viernes 28 de agosto a las 10:00 AM</strong>.</li>
-                    </ul>
-
-                    <div class="alert-box">
-                        <strong>⚠️ Alerta Operativa:</strong> Para el 28/08 el área debe estar 100% culminada y limpia para evitar observaciones vecinales y asegurar la recepción favorable.
-                    </div>
-                </div>
-                <div class="task-footer">
-                    <span>Plazo Crítico: <strong>28/08/2026</strong></span>
-                    <span>Responsable: C. Rodríguez / V. Casas</span>
-                </div>
-            </div>
-
-            <!-- Card 2: E4-01 PLUZ -->
-            <div class="task-card" data-category="E4-01">
-                <div class="task-header">
-                    <div>
-                        <div class="task-meta">
-                            <span class="badge-loc">ACCESO E4-01</span>
-                            <span class="badge-entity">PLUZ (ENEL)</span>
-                        </div>
-                        <div class="task-title">Retiro de 2 Postes de Alumbrado Público</div>
-                    </div>
-                    <span class="status-pill status-danger">Trámite de Pago</span>
-                </div>
-                <div class="task-body">
-                    <div class="section-sub">Objetivo Contractual</div>
-                    <p class="task-desc">Liberación de interferencia eléctrica para posibilitar la construcción de la estructura de acceso a la Estación E4-01.</p>
-
-                    <div class="section-sub">Acciones & Avance</div>
-                    <ul class="action-list">
-                        <li>Gestión técnica revisada, validada y aprobada por Jefatura de Producción (Ing. Jeancarlos Maguiña).</li>
-                        <li>Expediente técnico ingresado conforme a las normativas del concesionario eléctrico.</li>
-                    </ul>
-
-                    <div class="alert-box danger">
-                        <strong>🚨 Cuello de Botella:</strong> PLUZ exige obligatoriamente el pago del 100% por adelantado para programar la cuadrilla de retiro. Actualmente el pago está en tesorería para desembolso.
-                    </div>
-                </div>
-                <div class="task-footer">
-                    <span>Prioridad: <strong>Alta / Acceso Crítico</strong></span>
-                    <span>Condición: Desembolso 100%</span>
-                </div>
-            </div>
-
-            <!-- Card 3: E4-01 Telefónica -->
-            <div class="task-card" data-category="E4-01">
-                <div class="task-header">
-                    <div>
-                        <div class="task-meta">
-                            <span class="badge-loc">ACCESO E4-01</span>
-                            <span class="badge-entity">MOVISTAR / INTEGRATEL</span>
-                        </div>
-                        <div class="task-title">Evaluación Retiro de 1 Poste de Telefonía</div>
-                    </div>
-                    <span class="status-pill status-info">En Evaluación</span>
-                </div>
-                <div class="task-body">
-                    <div class="section-sub">Objetivo Contractual</div>
-                    <p class="task-desc">Evaluar la necesidad de reubicación o anulación de trámite por interferencia en acceso E4-01 (Código IF-2026-986).</p>
-
-                    <div class="section-sub">Acciones & Avance</div>
-                    <ul class="action-list">
-                        <li>Solicitud formal ingresada con registro IF-2026-986.</li>
-                        <li>Informe técnico de campo (Ing. José Yupanqui): Se concluye que no sería necesario reubicar debido a la alta complejidad técnica de redes de fibra.</li>
-                    </ul>
-
-                    <div class="alert-box">
-                        <strong>📌 Próximo Paso:</strong> Jefatura de Producción debe ratificar formalmente la no afectación para cerrar el expediente administrativo ante Integratel.
-                    </div>
-                </div>
-                <div class="task-footer">
-                    <span>Registro: IF-2026-986</span>
-                    <span>Estado: Por Confirmar Producción</span>
-                </div>
-            </div>
-
-            <!-- Card 4: PV23 / E25 -->
-            <div class="task-card" data-category="E25">
-                <div class="task-header">
-                    <div>
-                        <div class="task-meta">
-                            <span class="badge-loc">PV23 / E25</span>
-                            <span class="badge-entity">LUZ DEL SUR / MIN. PÚBLICO</span>
-                        </div>
-                        <div class="task-title">Retiro de 15 Postes MT (Emergencia y Descargo)</div>
-                    </div>
-                    <span class="status-pill status-success">Mitigado / Concluido</span>
-                </div>
-                <div class="task-body">
-                    <div class="section-sub">Objetivo Contractual</div>
-                    <p class="task-desc">Eliminación de riesgo de colapso de red de media tensión del PV23 y atención de intimación de Fiscalía Caso N° 282-2026.</p>
-
-                    <div class="section-sub">Hitos Ejecutados</div>
-                    <ul class="action-list">
-                        <li><strong>16 de Agosto:</strong> Retiro inmediato de 3 postes críticos y el 100% de cableado mediante cuadrilla privada.</li>
-                        <li><strong>21 al 24 de Agosto:</strong> Desmontaje seguro de los 12 postes restantes frente a Backus. Veredas 100% resanadas con concreto.</li>
-                        <li><strong>19 de Agosto:</strong> Ingreso digital del informe técnico de descargo demostrando mitigación total del riesgo.</li>
-                    </ul>
-
-                    <div class="alert-box" style="background:#edfcf2; border-color:#bcf0da; color:#03543f;">
-                        <strong>✅ Estado Actual:</strong> Riesgo neutralizado al 100%. Vía expedita y descargo presentado formalmente ante el Ministerio Público.
-                    </div>
-                </div>
-                <div class="task-footer">
-                    <span>Caso Fiscal: N° 282-2026</span>
-                    <span>Resultado: 100% Retirado</span>
-                </div>
-            </div>
-
+            <div class="loading-box">⏳ Cargando gestiones desde Google Sheets...</div>
         </div>
 
-        <!-- WhatsApp Executive Summary Trigger -->
-        <button class="whatsapp-btn-float" onclick="copyWhatsAppSummary()">
+        <!-- Botón WhatsApp -->
+        <button class="whatsapp-btn-float" onclick="copiarWhatsApp()">
             📋 Copiar Reporte Ejecutivo para WhatsApp
         </button>
 
@@ -529,51 +392,162 @@
     <div id="toast" class="copy-toast">✅ Reporte copiado. ¡Listo para pegar en WhatsApp!</div>
 
     <script>
-        function filterTasks(cat, btn) {
+        // ==========================================
+        // CONFIGURACIÓN DE TU ENLACE GOOGLE SHEETS
+        // Reemplaza la URL entre comillas con tu enlace CSV publicado:
+        // ==========================================
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pubhtml';
+
+        let listaGestiones = [];
+
+        async function cargarDatos() {
+            try {
+                // PapaParse descarga y parsea el CSV respetando comillas y saltos de línea internos
+                Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        listaGestiones = results.data;
+                        renderizarDashboard(listaGestiones);
+                    },
+                    error: function(err) {
+                        document.getElementById('tasks-container').innerHTML = 
+                            `<div class="loading-box" style="color:red;">❌ Error al conectar con Google Sheets. Verifica la URL de publicación.</div>`;
+                    }
+                });
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        function renderizarDashboard(datos) {
+            const container = document.getElementById('tasks-container');
+            const filterContainer = document.getElementById('filter-container');
+            container.innerHTML = '';
+
+            let total = datos.length;
+            let concluidas = 0;
+            let proceso = 0;
+            let entidadesSet = new Set();
+            let ubicacionesSet = new Set();
+
+            datos.forEach((item, index) => {
+                // Mapeo flexible de columnas (según los nombres de tu cabecera)
+                const ubicacion = item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || 'General';
+                const tema = item['TEMA'] || item['TEMA / INTERVENCIÓN'] || 'Sin Asunto';
+                const objetivo = item['OBJETIVO'] || '';
+                const entidad = item['ENTIDAD'] || 'No especificada';
+                const plazo = item['PLAZO'] || item['FECHA INICIO'] || '-';
+                const estado = item['ESTADO'] || item['ESTADO OPERATIVO'] || 'En proceso';
+                const acciones = item['ACCIONES'] || item['ACCIONES EJECUTADAS'] || '';
+                const alertas = item['REFERENCIA'] || item['ALERTAS'] || '';
+
+                entidadesSet.add(entidad.trim());
+                ubicacionesSet.add(ubicacion.trim());
+
+                // Clasificación de color de estado
+                let estadoClass = 'status-info';
+                const estLower = estado.toLowerCase();
+                if (estLower.includes('concluid') || estLower.includes('mitigad') || estLower.includes('cerrad')) {
+                    estadoClass = 'status-success';
+                    concluidas++;
+                } else if (estLower.includes('inspecc') || estLower.includes('alerta') || estLower.includes('pago')) {
+                    estadoClass = 'status-warning';
+                    proceso++;
+                } else {
+                    estadoClass = 'status-danger';
+                    proceso++;
+                }
+
+                // Generar tarjeta HTML
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.setAttribute('data-loc', ubicacion);
+                card.innerHTML = `
+                    <div class="task-header">
+                        <div>
+                            <div class="task-meta">
+                                <span class="badge-loc">${ubicacion}</span>
+                                <span class="badge-entity">${entidad}</span>
+                            </div>
+                            <div class="task-title">${tema}</div>
+                        </div>
+                        <span class="status-pill ${estadoClass}">${estado}</span>
+                    </div>
+                    <div class="task-body">
+                        ${objetivo ? `<div class="section-sub">Objetivo</div><p class="task-desc">${objetivo}</p>` : ''}
+                        ${acciones ? `<div class="section-sub">Acciones & Avance</div><p class="task-desc">${acciones}</p>` : ''}
+                        ${alertas ? `<div class="alert-box"><strong>📌 Observaciones / Próximos pasos:</strong><br>${alertas}</div>` : ''}
+                    </div>
+                    <div class="task-footer">
+                        <span>Plazo / Fecha: <strong>${plazo}</strong></span>
+                        <span>Item #${index + 1}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Actualizar KPIs
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-proceso').innerText = proceso;
+            document.getElementById('kpi-concluidas').innerText = concluidas;
+            document.getElementById('kpi-entidades').innerText = entidadesSet.size;
+
+            // Generar botones de filtro dinámicos por Ubicación
+            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar(\'all\', this)">Todos</button>';
+            ubicacionesSet.forEach(loc => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.innerText = loc;
+                btn.onclick = function() { filtrar(loc, this); };
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        function filtrar(ubicacion, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
             const cards = document.querySelectorAll('.task-card');
-            cards.forEach(card => {
-                if (cat === 'all' || card.getAttribute('data-category') === cat) {
-                    card.style.display = 'block';
+            cards.forEach(c => {
+                if (ubicacion === 'all' || c.getAttribute('data-loc') === ubicacion) {
+                    c.style.display = 'block';
                 } else {
-                    card.style.display = 'none';
+                    c.style.display = 'none';
                 }
             });
         }
 
-        function copyWhatsAppSummary() {
-            const summaryText = `*🚆 CCM2L | REPORTE EJECUTIVO DE GESTIONES Y PERMISOS*
-📅 *Fecha:* 27/08/2026
-👤 *Área:* Permisos de Obra & Gestión Contractual
+        function copiarWhatsApp() {
+            if (listaGestiones.length === 0) return;
 
-*1. ESTACIÓN E04 (Pavimento / Tuneladora)*
-• *Entidad:* MPC (GTU Callao)
-• *Hito:* Inspección de campo pactada para el *Viernes 28/08 a las 10:00 AM*.
-• *Acción:* Tramo debe estar al 100% culminado para entrega formal de vía.
+            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO EN TIEMPO REAL*\n`;
+            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual\n\n`;
 
-*2. ESTACIÓN E4-01 (Postes Alumbrado)*
-• *Entidad:* PLUZ (Enel)
-• *Estado:* Aprobado técnicamente por Jefatura de Producción.
-• *Alerta:* Trámite en proceso de desembolso (PLUZ exige 100% pago previo para programar retiro).
+            listaGestiones.forEach((item, i) => {
+                const ubi = item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || 'General';
+                const tema = item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '';
+                const ent = item['ENTIDAD'] || '';
+                const est = item['ESTADO'] || item['ESTADO OPERATIVO'] || '';
+                const plazo = item['PLAZO'] || '';
 
-*3. ESTACIÓN E4-01 (Poste Telefonía)*
-• *Entidad:* Movistar / Integratel (IF-2026-986)
-• *Estado:* Técnico de campo determinó no requerir reubicación por complejidad. Pendiente ratificación formal de Producción.
+                texto += `*${i + 1}. ${ubi} - ${tema}*\n`;
+                if (ent) texto += `• Entidad: ${ent}\n`;
+                if (est) texto += `• Estado: ${est}\n`;
+                if (plazo) texto += `• Plazo/Compromiso: ${plazo}\n`;
+                texto += `\n`;
+            });
 
-*4. PV23 / E25 (Postes Media Tensión)*
-• *Entidad:* Luz del Sur / Fiscalía (Caso N° 282-2026)
-• *Resultado:* 15 postes retirados al 100%, cables desmontados y veredas resanadas. Informe de descargo presentado con éxito.`;
-
-            navigator.clipboard.writeText(summaryText).then(() => {
+            navigator.clipboard.writeText(texto.trim()).then(() => {
                 const toast = document.getElementById("toast");
                 toast.className = "copy-toast show";
                 setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
-            }).catch(err => {
-                alert("Error al copiar texto: " + err);
             });
         }
+
+        // Cargar datos al iniciar
+        window.onload = cargarDatos;
     </script>
 </body>
 </html>
