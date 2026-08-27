@@ -1,558 +1,480 @@
-<!DOCTYPE html>
+html_final = """<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCM2L | Dashboard de Gestiones en Tiempo Real</title>
-    <!-- Librería PapaParse para procesamiento eficiente de datos en tiempo real -->
+    <title>CCM2L | Dashboard Ejecutivo Minimalista</title>
+    <!-- Cargamos PapaParse para el CSV -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
         :root {
-            --primary: #003366;
-            --primary-dark: #002244;
-            --accent: #007acc;
-            --bg: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #4b5563;
-            --border: #e5e7eb;
-            --success-bg: #def7ec;
-            --success-text: #03543f;
-            --warning-bg: #fef08a;
-            --warning-text: #713f12;
-            --danger-bg: #fde8e8;
-            --danger-text: #9b1c1c;
-            --info-bg: #e1effe;
-            --info-text: #1e429f;
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            padding-bottom: 40px;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding-bottom: 80px;
         }
 
-        .app-header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            color: #ffffff;
-            padding: 16px 20px;
+        header {
+            padding: 24px 20px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
             position: sticky;
             top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .header-container {
-            max-width: 1000px;
-            margin: 0 auto;
+            z-index: 50;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .header-title h1 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .header-title p {
-            font-size: 0.8rem;
-            opacity: 0.85;
-        }
-
-        .header-badge {
-            background: rgba(255,255,255,0.18);
-            padding: 5px 12px;
-            border-radius: 20px;
+        .brand-subtitle {
             font-size: 0.75rem;
-            font-weight: 600;
-            border: 1px solid rgba(255,255,255,0.25);
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .live-indicator {
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--success);
             border-radius: 50%;
-            background-color: #25D366;
-            animation: pulse 1.5s infinite;
+            animation: blink 1.5s infinite;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
-        .main-container {
-            max-width: 1000px;
-            margin: 15px auto;
-            padding: 0 16px;
-        }
-
-        .kpi-grid {
+        .kpi-wrapper {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-box {
+            background: var(--surface-color);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-box:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .kpi-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
             margin-bottom: 20px;
         }
 
-        @media (min-width: 768px) {
-            .kpi-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
+        .filters::-webkit-scrollbar { display: none; }
 
-        .kpi-card {
-            background: var(--card-bg);
-            padding: 14px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            border-left: 4px solid var(--accent);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .kpi-card.kpi-danger { border-left-color: #e02424; }
-        .kpi-card.kpi-warning { border-left-color: #d97706; }
-        .kpi-card.kpi-success { border-left-color: #057a55; }
-
-        .kpi-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .kpi-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text-main);
-            margin: 4px 0;
-        }
-
-        .kpi-desc {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-
-        .filter-section {
-            margin-bottom: 16px;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding-bottom: 6px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .filter-btn {
-            background: #ffffff;
+        .chip {
+            background: transparent;
             border: 1px solid var(--border);
-            padding: 8px 14px;
-            border-radius: 20px;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 30px;
             font-size: 0.8rem;
             font-weight: 600;
-            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.2s ease;
+            white-space: nowrap;
+            transition: all 0.3s ease;
         }
 
-        .filter-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            border-color: var(--primary);
+        .chip.active {
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border-color: var(--text-primary);
         }
 
         .task-card {
-            background: var(--card-bg);
-            border-radius: 14px;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.06);
-            margin-bottom: 16px;
+            background: var(--surface-color);
             border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            position: relative;
             overflow: hidden;
         }
 
-        .task-header {
-            padding: 14px 16px;
+        .card-glow {
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+        }
+
+        .status-mitigado .card-glow { background: var(--success); }
+        .status-proceso .card-glow { background: var(--warning); }
+        .status-critico .card-glow { background: var(--danger); }
+
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 1px solid var(--border);
-            background: #fafbfc;
+            margin-bottom: 12px;
         }
 
-        .task-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-            flex-wrap: wrap;
-        }
-
-        .badge-loc {
-            background: #1e3a8a;
-            color: #ffffff;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
-
-        .badge-entity {
-            background: #e5e7eb;
-            color: #374151;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.72rem;
+        .card-title {
+            font-size: 1.1rem;
             font-weight: 600;
-        }
-
-        .task-title {
-            font-size: 0.98rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-            line-height: 1.3;
-        }
-
-        .status-pill {
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        .status-success { background: var(--success-bg); color: var(--success-text); }
-        .status-warning { background: var(--warning-bg); color: var(--warning-text); }
-        .status-danger { background: var(--danger-bg); color: var(--danger-text); }
-        .status-info { background: var(--info-bg); color: var(--info-text); }
-
-        .task-body {
-            padding: 14px 16px;
-        }
-
-        .section-sub {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--accent);
-            text-transform: uppercase;
-            margin-top: 10px;
-            margin-bottom: 4px;
-        }
-
-        .task-desc {
-            font-size: 0.85rem;
-            color: #4b5563;
-            line-height: 1.45;
-            white-space: pre-line;
-        }
-
-        .alert-box {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 10px 12px;
-            margin-top: 12px;
-            font-size: 0.8rem;
-            color: #92400e;
             line-height: 1.4;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-loc { background: rgba(56, 189, 248, 0.15); color: var(--accent-color); }
+        .badge-ent { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+        .card-body {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
             white-space: pre-line;
         }
 
-        .task-footer {
-            background: #f9fafb;
-            padding: 10px 16px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid var(--border);
+        .card-body strong {
+            color: var(--text-primary);
         }
-
-        .whatsapp-btn-float {
-            background: #25D366;
-            color: #ffffff;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            display: flex;
+        
+        .notebook-btn {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-            cursor: pointer;
-            width: 100%;
-            margin-top: 16px;
-        }
-
-        .copy-toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
+            gap: 6px;
+            background: rgba(129, 140, 248, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            padding: 6px 12px;
             border-radius: 8px;
-            padding: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 16px;
+            transition: all 0.2s;
+        }
+        .notebook-btn:hover {
+            background: rgba(129, 140, 248, 0.25);
+        }
+
+        .fab {
             position: fixed;
-            z-index: 200;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 0.85rem;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border: none;
+            padding: 16px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
         }
+        
+        .fab:hover { transform: scale(1.05); }
 
-        .copy-toast.show {
-            visibility: visible;
-            animation: fadein 0.3s, fadeout 0.3s 2.2s;
-        }
-
-        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
-        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
-
-        .loading-box {
+        .loader {
             text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
+            padding: 50px 20px;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
+        
+        .toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+        .toast.show { bottom: 90px; }
+
     </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="header-container">
-            <div class="header-title">
-                <h1>CCM2L | CONTROL DE GESTIONES</h1>
-                <p>Permisos de Obra & Interferencias</p>
-            </div>
-            <div class="header-badge">
-                <span class="status-dot"></span> En Vivo
-            </div>
+    <header>
+        <div>
+            <div class="brand-title">L2 DASHBOARD</div>
+            <div class="brand-subtitle">Gestión Contractual & Permisos</div>
         </div>
+        <div class="live-indicator"><div class="dot"></div> En vivo</div>
     </header>
 
-    <div class="main-container">
-
-        <!-- KPIs Dinámicos -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-title">Gestiones Totales</div>
-                <div class="kpi-value" id="kpi-total">-</div>
-                <div class="kpi-desc">Total en seguimiento</div>
+    <div class="container">
+        <!-- KPIs -->
+        <div class="kpi-wrapper">
+            <div class="kpi-box">
+                <span class="kpi-label">Total Gestiones</span>
+                <span class="kpi-number" id="kpi-total">0</span>
             </div>
-            <div class="kpi-card kpi-warning">
-                <div class="kpi-title">En Proceso / Trámite</div>
-                <div class="kpi-value" id="kpi-proceso">-</div>
-                <div class="kpi-desc">Atención en curso</div>
-            </div>
-            <div class="kpi-card kpi-success">
-                <div class="kpi-title">Mitigadas / Cierres</div>
-                <div class="kpi-value" id="kpi-concluidas">-</div>
-                <div class="kpi-desc">Riesgos eliminados</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Entidades</div>
-                <div class="kpi-value" id="kpi-entidades">-</div>
-                <div class="kpi-desc">Involucradas</div>
+            <div class="kpi-box" style="border-color: rgba(245,158,11,0.3);">
+                <span class="kpi-label" style="color: var(--warning);">En Trámite / Proceso</span>
+                <span class="kpi-number" id="kpi-proceso">0</span>
             </div>
         </div>
 
-        <!-- Filtros Dinámicos -->
-        <div class="filter-section" id="filter-container">
-            <button class="filter-btn active" onclick="filtrar('all', this)">Todos</button>
+        <!-- Filters -->
+        <div class="filters" id="filters">
+            <button class="chip active" onclick="filterData('all', this)">Todas las áreas</button>
         </div>
 
-        <!-- Contenedor dinámico de tarjetas -->
-        <div id="tasks-container">
-            <div class="loading-box">⏳ Conectando y cargando gestiones en tiempo real...</div>
+        <!-- Cards -->
+        <div id="cards-container">
+            <div class="loader">Sincronizando matriz en tiempo real...</div>
         </div>
-
-        <!-- Botón para copiar reporte a WhatsApp -->
-        <button class="whatsapp-btn-float" onclick="copiarWhatsApp()">
-            📋 Copiar Reporte Ejecutivo para WhatsApp
-        </button>
-
     </div>
 
-    <div id="toast" class="copy-toast">✅ Reporte copiado. ¡Listo para pegar en WhatsApp!</div>
+    <button class="fab" onclick="shareWhatsApp()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Compartir Reporte
+    </button>
+
+    <div class="toast" id="toast">Copiado al portapapeles</div>
 
     <script>
-        // Enlace adaptado automáticamente a formato de datos CSV en tiempo real
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pub?output=csv';
+        // Enlace de Google Sheets publicado como CSV
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pub?output=csv';
+        let rawData = [];
 
-        let listaGestiones = [];
-
-        async function cargarDatos() {
+        async function init() {
             try {
-                Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                Papa.parse(CSV_URL, {
                     download: true,
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        listaGestiones = results.data;
-                        renderizarDashboard(listaGestiones);
+                        rawData = results.data;
+                        renderView(rawData);
                     },
                     error: function(err) {
-                        document.getElementById('tasks-container').innerHTML = 
-                            `<div class="loading-box" style="color:#c5221f;">❌ Error al sincronizar con Google Sheets. Verifique la conexión a internet.</div>`;
+                        document.getElementById('cards-container').innerHTML = `<div class="loader" style="color:var(--danger)">Error al cargar datos. Verifica el enlace de Google Sheets.</div>`;
                     }
                 });
             } catch (error) {
-                console.error("Error:", error);
+                console.error(error);
             }
         }
 
-        function renderizarDashboard(datos) {
-            const container = document.getElementById('tasks-container');
-            const filterContainer = document.getElementById('filter-container');
+        function renderView(data) {
+            const container = document.getElementById('cards-container');
+            const filtersBox = document.getElementById('filters');
             container.innerHTML = '';
+            
+            let countTotal = 0;
+            let countProceso = 0;
+            const ubiSet = new Set();
 
-            let total = 0;
-            let concluidas = 0;
-            let proceso = 0;
-            let entidadesSet = new Set();
-            let ubicacionesSet = new Set();
+            data.forEach((row, i) => {
+                // Mapeo adaptativo
+                const ubi = (row['UBICACIÓN'] || row['TAREAS ESTRUCTURA'] || row['ESTADO E25'] || 'General').trim();
+                const tema = (row['TEMA'] || row['TEMA / INTERVENCIÓN'] || '').trim();
+                const entidad = (row['ENTIDAD'] || '').trim();
+                const estado = (row['ESTADO'] || row['ESTADO OPERATIVO'] || 'En proceso').trim();
+                const acciones = (row['ACCIONES'] || row['ACCIONES EJECUTADAS'] || '').trim();
+                const alertas = (row['REFERENCIA'] || row['ALERTAS'] || '').trim();
+                const notebookLink = (row['LINK NOTEBOOK'] || row['CUADERNO GEMINI'] || '').trim();
 
-            datos.forEach((item, index) => {
-                // Mapeo flexible de columnas para compatibilidad de encabezados
-                const ubicacion = (item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || item['ESTADO E25'] || 'General').trim();
-                const tema = (item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '').trim();
-                const objetivo = (item['OBJETIVO'] || '').trim();
-                const entidad = (item['ENTIDAD'] || 'No especificada').trim();
-                const plazo = (item['PLAZO'] || item['FECHA INICIO'] || '-').trim();
-                const estado = (item['ESTADO'] || item['ESTADO OPERATIVO'] || 'En proceso').trim();
-                const acciones = (item['ACCIONES'] || item['ACCIONES EJECUTADAS'] || '').trim();
-                const alertas = (item['REFERENCIA'] || item['ALERTAS'] || '').trim();
+                if(!tema && !acciones) return;
+                
+                countTotal++;
+                ubiSet.add(ubi);
 
-                // Validar que la fila contenga datos reales
-                if (!tema && !objetivo && !acciones) return;
-
-                total++;
-                if (entidad && entidad !== 'No especificada') entidadesSet.add(entidad);
-                if (ubicacion) ubicacionesSet.add(ubicacion);
-
-                // Clasificación de criticidad / estado
-                let estadoClass = 'status-info';
                 const estLower = estado.toLowerCase();
-                if (estLower.includes('concluid') || estLower.includes('mitigad') || estLower.includes('cerrad') || estLower.includes('atendido')) {
-                    estadoClass = 'status-success';
-                    concluidas++;
-                } else if (estLower.includes('inspecc') || estLower.includes('alerta') || estLower.includes('pago') || estLower.includes('pendiente')) {
-                    estadoClass = 'status-warning';
-                    proceso++;
+                let statusClass = 'status-critico';
+                let estColor = 'var(--danger)';
+                
+                if (estLower.includes('concluid') || estLower.includes('mitigad') || estLower.includes('atendido') || estLower.includes('cerrad')) {
+                    statusClass = 'status-mitigado';
+                    estColor = 'var(--success)';
+                } else if (estLower.includes('proceso') || estLower.includes('inspecc') || estLower.includes('pago') || estLower.includes('pendiente')) {
+                    statusClass = 'status-proceso';
+                    estColor = 'var(--warning)';
+                    countProceso++;
                 } else {
-                    estadoClass = 'status-danger';
-                    proceso++;
+                    countProceso++;
                 }
 
-                // Creación de la tarjeta interactiva
-                const card = document.createElement('div');
-                card.className = 'task-card';
-                card.setAttribute('data-loc', ubicacion);
-                card.innerHTML = `
-                    <div class="task-header">
-                        <div>
-                            <div class="task-meta">
-                                <span class="badge-loc">${ubicacion}</span>
-                                <span class="badge-entity">${entidad}</span>
-                            </div>
-                            <div class="task-title">${tema || 'Gestión Contractual'}</div>
+                let bodyHtml = acciones;
+                if(alertas && alertas !== '#VALUE!') {
+                    bodyHtml += `\\n\\n<strong>📌 Alertas/Próximos pasos:</strong>\\n${alertas}`;
+                }
+
+                // Render Card
+                const html = `
+                    <div class="task-card ${statusClass}" data-ubi="${ubi}">
+                        <div class="card-glow"></div>
+                        <div class="card-header">
+                            <h3 class="card-title">${tema || 'Gestión Contractual'}</h3>
                         </div>
-                        <span class="status-pill ${estadoClass}">${estado}</span>
-                    </div>
-                    <div class="task-body">
-                        ${objetivo ? `<div class="section-sub">Objetivo</div><p class="task-desc">${objetivo}</p>` : ''}
-                        ${acciones ? `<div class="section-sub">Acciones & Avance</div><p class="task-desc">${acciones}</p>` : ''}
-                        ${alertas && alertas !== '#VALUE!' ? `<div class="alert-box"><strong>📌 Observaciones / Próximos pasos:</strong><br>${alertas}</div>` : ''}
-                    </div>
-                    <div class="task-footer">
-                        <span>Plazo / Compromiso: <strong>${plazo}</strong></span>
-                        <span>Gestión #${total}</span>
+                        <div class="card-badges">
+                            <span class="badge badge-loc">${ubi}</span>
+                            ${entidad ? `<span class="badge badge-ent">${entidad}</span>` : ''}
+                            <span class="badge" style="color: ${estColor}; border: 1px solid ${estColor};">${estado}</span>
+                        </div>
+                        <div class="card-body">
+                            ${bodyHtml}
+                        </div>
+                        
+                        ${notebookLink ? `
+                        <a href="${notebookLink}" target="_blank" class="notebook-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            Abrir Cuaderno Gemini
+                        </a>
+                        ` : ''}
                     </div>
                 `;
-                container.appendChild(card);
+                container.innerHTML += html;
             });
 
-            // Actualizar contadores KPI
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-proceso').innerText = proceso;
-            document.getElementById('kpi-concluidas').innerText = concluidas;
-            document.getElementById('kpi-entidades').innerText = entidadesSet.size;
+            document.getElementById('kpi-total').innerText = countTotal;
+            document.getElementById('kpi-proceso').innerText = countProceso;
 
-            // Construir botones de filtro
-            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar(\'all\', this)">Todos (' + total + ')</button>';
-            ubicacionesSet.forEach(loc => {
-                const btn = document.createElement('button');
-                btn.className = 'filter-btn';
-                btn.innerText = loc;
-                btn.onclick = function() { filtrar(loc, this); };
-                filterContainer.appendChild(btn);
-            });
-        }
-
-        function filtrar(ubicacion, btn) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            const cards = document.querySelectorAll('.task-card');
-            cards.forEach(c => {
-                if (ubicacion === 'all' || c.getAttribute('data-loc') === ubicacion) {
-                    c.style.display = 'block';
-                } else {
-                    c.style.display = 'none';
+            // Render Filtros dinámicos
+            filtersBox.innerHTML = `<button class="chip active" onclick="filterData('all', this)">Todas las áreas (${countTotal})</button>`;
+            ubiSet.forEach(loc => {
+                if(loc !== 'General' || ubiSet.size === 1) {
+                    filtersBox.innerHTML += `<button class="chip" onclick="filterData('${loc}', this)">${loc}</button>`;
                 }
             });
         }
 
-        function copiarWhatsApp() {
-            if (listaGestiones.length === 0) return;
+        window.filterData = function(ubi, btnElem) {
+            document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+            btnElem.classList.add('active');
 
-            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO DE GESTIONES*\n`;
-            texto += `📅 *Actualizado:* En tiempo real\n`;
-            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual\n\n`;
-
-            let contador = 1;
-            listaGestiones.forEach((item) => {
-                const ubi = (item['UBICACIÓN'] || item['TAREAS ESTRUCTURA'] || item['ESTADO E25'] || 'General').trim();
-                const tema = (item['TEMA'] || item['TEMA / INTERVENCIÓN'] || '').trim();
-                const ent = (item['ENTIDAD'] || '').trim();
-                const est = (item['ESTADO'] || item['ESTADO OPERATIVO'] || '').trim();
-                const plazo = (item['PLAZO'] || item['FECHA INICIO'] || '').trim();
-
-                if (!tema && !ubi) return;
-
-                texto += `*${contador}. ${ubi} - ${tema}*\n`;
-                if (ent) texto += `• Entidad: ${ent}\n`;
-                if (est) texto += `• Estado: ${est}\n`;
-                if (plazo && plazo !== '-') texto += `• Plazo: ${plazo}\n`;
-                texto += `\n`;
-                contador++;
-            });
-
-            navigator.clipboard.writeText(texto.trim()).then(() => {
-                const toast = document.getElementById("toast");
-                toast.className = "copy-toast show";
-                setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
+            document.querySelectorAll('.task-card').forEach(card => {
+                if (ubi === 'all' || card.getAttribute('data-ubi') === ubi) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
             });
         }
 
-        // Ejecución automática al abrir la web
-        window.onload = cargarDatos;
+        window.shareWhatsApp = function() {
+            let text = `*LÍNEA 2 - ESTADO DE GESTIONES*\\n_Área Contractual & Permisos_\\n\\n`;
+            let contador = 1;
+            
+            rawData.forEach(row => {
+                const ubi = (row['UBICACIÓN'] || row['TAREAS ESTRUCTURA'] || row['ESTADO E25'] || 'General').trim();
+                const tema = (row['TEMA'] || row['TEMA / INTERVENCIÓN'] || '').trim();
+                const est = (row['ESTADO'] || row['ESTADO OPERATIVO'] || 'En proceso').trim();
+                
+                if(!tema && !ubi) return;
+                
+                text += `*${contador}. ${ubi} - ${tema}*\\nEstado: ${est}\\n\\n`;
+                contador++;
+            });
+            
+            navigator.clipboard.writeText(text.trim()).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            });
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
+"""
+with open("Dashboard_CCM2L_Final.html", "w", encoding="utf-8") as f:
+    f.write(html_final)
