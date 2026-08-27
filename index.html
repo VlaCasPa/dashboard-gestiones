@@ -392,7 +392,7 @@
     <div id="toast" class="copy-toast">✅ Reporte copiado. ¡Listo para pegar en WhatsApp!</div>
 
     <script>
-        // Enlace adaptado a formato de datos CSV en tiempo real
+        // Enlace adaptado automáticamente a formato de datos CSV en tiempo real
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pub?output=csv';
 
         let listaGestiones = [];
@@ -495,7 +495,7 @@
             document.getElementById('kpi-entidades').innerText = entidadesSet.size;
 
             // Construir botones de filtro
-            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar('all', this)">Todos (' + total + ')</button>';
+            filterContainer.innerHTML = '<button class="filter-btn active" onclick="filtrar(\'all\', this)">Todos (' + total + ')</button>';
             ubicacionesSet.forEach(loc => {
                 const btn = document.createElement('button');
                 btn.className = 'filter-btn';
@@ -522,13 +522,9 @@
         function copiarWhatsApp() {
             if (listaGestiones.length === 0) return;
 
-            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO DE GESTIONES*
-`;
-            texto += `📅 *Actualizado:* En tiempo real
-`;
-            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual
-
-`;
+            let texto = `*🚆 CCM2L | REPORTE EJECUTIVO DE GESTIONES*\n`;
+            texto += `📅 *Actualizado:* En tiempo real\n`;
+            texto += `👤 *Área:* Permisos de Obra & Gestión Contractual\n\n`;
 
             let contador = 1;
             listaGestiones.forEach((item) => {
@@ -540,16 +536,11 @@
 
                 if (!tema && !ubi) return;
 
-                texto += `*${contador}. ${ubi} - ${tema}*
-`;
-                if (ent) texto += `• Entidad: ${ent}
-`;
-                if (est) texto += `• Estado: ${est}
-`;
-                if (plazo && plazo !== '-') texto += `• Plazo: ${plazo}
-`;
-                texto += `
-`;
+                texto += `*${contador}. ${ubi} - ${tema}*\n`;
+                if (ent) texto += `• Entidad: ${ent}\n`;
+                if (est) texto += `• Estado: ${est}\n`;
+                if (plazo && plazo !== '-') texto += `• Plazo: ${plazo}\n`;
+                texto += `\n`;
                 contador++;
             });
 
